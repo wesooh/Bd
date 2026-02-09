@@ -1,0 +1,1144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
+  <title>Birthday Party Mode 🎉</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      min-height: 100%;
+      width: 100%;
+      overflow-x: hidden;
+      touch-action: manipulation;
+    }
+    body {
+      min-height: 200vh;
+      font-family: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      background: linear-gradient(180deg, #87ceeb 0%, #ffdde1 40%, #0f2027 100%);
+      transition: background 0.8s ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* Prevent text selection on mobile */
+    .noselect {
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
+      -khtml-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
+      user-select: none;
+    }
+
+    /* Evolving background overlays */
+    .overlay {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      transition: opacity 0.8s ease;
+      z-index: 0;
+    }
+    .morning { background: radial-gradient(circle at 20% 20%, rgba(255,255,255,0.6), transparent 40%); opacity: 1; }
+    .evening { background: radial-gradient(circle at 80% 30%, rgba(255,200,150,0.35), transparent 45%); opacity: 0; }
+    .night { background: radial-gradient(circle at 50% 10%, rgba(120,160,255,0.25), transparent 55%); opacity: 0; }
+
+    /* Main content wrapper */
+    .content-wrapper {
+      position: relative;
+      z-index: 2;
+      padding-top: 10vh;
+      padding-bottom: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      width: 100%;
+      padding-left: 20px;
+      padding-right: 20px;
+    }
+
+    /* Card - made part of normal flow */
+    .scene {
+      perspective: 1200px;
+      margin-bottom: 2rem;
+      width: 100%;
+      display: flex;
+      justify-content: center;
+    }
+    .card {
+      width: min(320px, 90vw);
+      height: min(220px, 40vh);
+      border-radius: 24px;
+      position: relative;
+      transform-style: preserve-3d;
+      transition: transform 0.8s cubic-bezier(.2,.8,.2,1);
+      cursor: pointer;
+      box-shadow: 0 25px 50px rgba(0,0,0,0.2);
+      background: transparent;
+      touch-action: manipulation;
+    }
+    @media (max-width: 768px) {
+      .card {
+        width: min(280px, 85vw);
+        height: min(200px, 35vh);
+      }
+    }
+    .card.flip { transform: rotateY(180deg); }
+    .side {
+      position: absolute;
+      inset: 0;
+      border-radius: 24px;
+      backface-visibility: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 1.5rem;
+      overflow: hidden;
+    }
+    .front {
+      background: linear-gradient(135deg, #ff9a9e, #fad0c4);
+      color: #111;
+      font-size: clamp(1.2rem, 4vw, 1.4rem);
+    }
+    .back {
+      transform: rotateY(180deg);
+      background: #ffffff;
+      color: #222;
+      font-size: clamp(0.9rem, 3vw, 1.05rem);
+      line-height: 1.4;
+    }
+
+    /* Buttons */
+    .controls {
+      display: grid;
+      gap: 0.6rem;
+      margin-bottom: 2rem;
+      width: min(320px, 90vw);
+    }
+    @media (max-width: 768px) {
+      .controls {
+        width: min(280px, 85vw);
+        gap: 0.8rem;
+      }
+    }
+    button, .toggle {
+      border: none;
+      padding: clamp(0.8rem, 3vw, 1rem) clamp(1rem, 4vw, 1.5rem);
+      border-radius: 999px;
+      font-size: clamp(0.9rem, 3.5vw, 1rem);
+      cursor: pointer;
+      background: #ff5f6d;
+      color: #fff;
+      box-shadow: 0 10px 24px rgba(255,95,109,0.45);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      touch-action: manipulation;
+      min-height: 48px;
+    }
+    button:hover, button:active { 
+      transform: translateY(-2px); 
+      box-shadow: 0 14px 30px rgba(255,95,109,0.6);
+    }
+    button:active {
+      transform: translateY(0px);
+      transition: transform 0.1s;
+    }
+
+    /* Party mode disco lights overlay - FIXED THEME COLORS */
+    .party-lights {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 1;
+      opacity: 0;
+      transition: opacity 0.8s ease;
+      mix-blend-mode: screen;
+    }
+    .party .party-lights {
+      opacity: 1;
+    }
+    .light-beam {
+      position: absolute;
+      width: 100px;
+      height: 200%;
+      background: linear-gradient(to bottom, transparent, rgba(255,255,255,0.1), transparent);
+      filter: blur(20px);
+      animation: light-sweep 4s linear infinite;
+      opacity: 0.3;
+    }
+    @keyframes light-sweep {
+      0% { transform: rotate(0deg) translateY(-50%); }
+      100% { transform: rotate(360deg) translateY(-50%); }
+    }
+
+    /* Disco ball */
+    .disco-ball {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      width: clamp(40px, 8vw, 60px);
+      height: clamp(40px, 8vw, 60px);
+      border-radius: 50%;
+      background: radial-gradient(circle at 30% 30%, #fff, #ccc 40%, #333 70%);
+      box-shadow: 0 0 20px rgba(255,255,255,0.5);
+      z-index: 10;
+      animation: disco-spin 10s linear infinite;
+      display: none;
+    }
+    .party .disco-ball {
+      display: block;
+    }
+    .disco-ball::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 60%;
+      height: 60%;
+      background: radial-gradient(circle, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0.1) 70%);
+      border-radius: 50%;
+    }
+    @keyframes disco-spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    /* Dance animation */
+    .dancer {
+      position: fixed;
+      font-size: 4rem;
+      z-index: 15;
+      pointer-events: none;
+      animation: dance-move 2s ease-out forwards;
+    }
+    @keyframes dance-move {
+      0% {
+        transform: translate(-50%, -50%) scale(0) rotate(0deg);
+        opacity: 0;
+      }
+      20% {
+        transform: translate(-50%, -50%) scale(1.5) rotate(20deg);
+        opacity: 1;
+      }
+      40% {
+        transform: translate(-50%, -50%) scale(1) rotate(-20deg);
+      }
+      60% {
+        transform: translate(-50%, -50%) scale(1.2) rotate(20deg);
+      }
+      80% {
+        transform: translate(-50%, -50%) scale(1) rotate(-10deg);
+      }
+      100% {
+        transform: translate(-50%, -50%) scale(1.5) rotate(0deg);
+        opacity: 0;
+      }
+    }
+
+    /* Confetti */
+    .confetti {
+      position: fixed;
+      top: -10px;
+      width: 8px;
+      height: 8px;
+      animation: fall linear forwards;
+      z-index: 3;
+      pointer-events: none;
+    }
+    @keyframes fall { 
+      to { 
+        transform: translateY(110vh) rotate(360deg); 
+        opacity: 0; 
+      } 
+    }
+
+    /* Continuous confetti container for party mode */
+    .party-confetti-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 2;
+      overflow: hidden;
+    }
+    .party-confetti {
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      animation: party-fall linear infinite;
+    }
+    @keyframes party-fall {
+      0% {
+        transform: translateY(-20px) rotate(0deg) translateX(0);
+        opacity: 1;
+      }
+      50% {
+        opacity: 0.8;
+      }
+      100% {
+        transform: translateY(100vh) rotate(720deg) translateX(calc(100vw * var(--drift, 0)));
+        opacity: 0;
+      }
+    }
+
+    /* Mouse trails */
+    .trail {
+      position: fixed;
+      width: 8px;
+      height: 8px;
+      pointer-events: none;
+      animation: trail 0.8s ease-out forwards;
+      z-index: 4;
+    }
+    @keyframes trail { to { transform: scale(2); opacity: 0; } }
+
+    /* Inline message display */
+    .inline-message {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(255,255,255,0.95);
+      padding: clamp(0.8rem, 3vw, 1rem) clamp(1.2rem, 4vw, 1.5rem);
+      border-radius: 50px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+      z-index: 100;
+      animation: fadeInOut 3s ease forwards;
+      font-weight: 600;
+      text-align: center;
+      max-width: min(90vw, 500px);
+      border: 2px solid #ff5f6d;
+      font-size: clamp(0.9rem, 3vw, 1rem);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+    }
+    @keyframes fadeInOut {
+      0% { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+      15% { opacity: 1; transform: translateX(-50%) translateY(0); }
+      85% { opacity: 1; transform: translateX(-50%) translateY(0); }
+      100% { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+    }
+
+    /* Mini-game - FIXED CLICKABLE */
+    .game {
+      position: relative;
+      height: clamp(300px, 40vh, 360px);
+      margin: 2rem auto;
+      width: min(92%, 420px);
+      background: rgba(255,255,255,0.85);
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+      backdrop-filter: blur(5px);
+      -webkit-backdrop-filter: blur(5px);
+    }
+    @media (max-width: 480px) {
+      .game {
+        height: clamp(250px, 35vh, 320px);
+      }
+    }
+    .balloon, .cake {
+      position: absolute;
+      font-size: clamp(1.5rem, 5vw, 2rem);
+      cursor: pointer;
+      user-select: none;
+      transition: transform 0.2s ease;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+      transform-origin: center;
+      opacity: 0;
+      z-index: 10; /* Ensure they're above other elements */
+      pointer-events: auto !important; /* Force clickable */
+    }
+    .balloon:hover, .cake:hover,
+    .balloon:active, .cake:active {
+      transform: scale(1.2);
+    }
+    .msg {
+      text-align: center;
+      padding: 0.6rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      font-size: clamp(0.9rem, 3vw, 1rem);
+    }
+
+    /* Theme selector for party mode */
+    .theme-selector {
+      position: fixed;
+      bottom: 80px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 10px;
+      padding: 10px 20px;
+      background: rgba(255,255,255,0.9);
+      border-radius: 50px;
+      box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+      z-index: 50;
+      display: none;
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+    }
+    .party .theme-selector {
+      display: flex;
+    }
+    .theme-option {
+      width: clamp(25px, 6vw, 30px);
+      height: clamp(25px, 6vw, 30px);
+      border-radius: 50%;
+      cursor: pointer;
+      border: 2px solid transparent;
+      transition: all 0.3s ease;
+      touch-action: manipulation;
+    }
+    .theme-option:hover {
+      transform: scale(1.1);
+    }
+    .theme-option.active {
+      border-color: #000;
+      transform: scale(1.1);
+      box-shadow: 0 0 10px rgba(0,0,0,0.3);
+    }
+
+    /* Secret clickable */
+    .secret {
+      position: fixed;
+      bottom: 14px;
+      right: 14px;
+      font-size: clamp(1rem, 4vw, 1.2rem);
+      opacity: 0.6;
+      cursor: pointer;
+      z-index: 5;
+      transition: opacity 0.3s ease;
+      touch-action: manipulation;
+      padding: 10px;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .secret:hover {
+      opacity: 1;
+    }
+
+    /* Party mode controls */
+    .party-controls {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 10px;
+      z-index: 50;
+      display: none;
+    }
+    .party .party-controls {
+      display: flex;
+    }
+    .party-control-btn {
+      background: rgba(255,255,255,0.9);
+      border: none;
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+      transition: all 0.3s ease;
+      font-size: 1.2rem;
+      touch-action: manipulation;
+    }
+    .party-control-btn:hover {
+      transform: scale(1.1);
+    }
+
+    /* Mobile-specific optimizations */
+    @media (max-width: 768px) {
+      .content-wrapper {
+        padding-top: 5vh;
+      }
+      .game {
+        margin: 1rem auto;
+      }
+      .theme-selector {
+        bottom: 70px;
+        padding: 8px 16px;
+      }
+      .party-controls {
+        bottom: 15px;
+      }
+      .party-control-btn {
+        width: 45px;
+        height: 45px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .theme-selector {
+        bottom: 65px;
+      }
+      .party-controls {
+        gap: 8px;
+      }
+    }
+
+    /* Landscape mode optimizations */
+    @media (max-height: 600px) and (orientation: landscape) {
+      .content-wrapper {
+        padding-top: 5vh;
+        padding-bottom: 10px;
+      }
+      .card {
+        height: min(180px, 50vh);
+      }
+      .game {
+        height: clamp(200px, 50vh, 250px);
+        margin: 1rem auto;
+      }
+    }
+
+    footer { 
+      height: 60vh; 
+      width: 100%;
+    }
+  </style>
+</head>
+<body class="noselect">
+  <div class="overlay morning"></div>
+  <div class="overlay evening"></div>
+  <div class="overlay night"></div>
+
+  <!-- Party Mode Elements -->
+  <div class="party-lights" id="partyLights"></div>
+  <div class="disco-ball" id="discoBall"></div>
+  <div class="party-confetti-container" id="partyConfettiContainer"></div>
+
+  <div class="content-wrapper">
+    <div class="scene">
+      <div class="card" id="card">
+        <div class="side front">Tap me 🎁</div>
+        <div class="side back">
+          <div>
+            <h2>🎂 Happy Birthday CALEB!</h2>
+            <p>You make rooms brighter just by being in them. Today's your day — enjoy every second 💫</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <button id="partyBtn">Party Mode 🕺💃</button>
+      <button id="amazingBtn">Why you're special 💫</button>
+    </div>
+
+    <div class="game" id="game">
+      <div class="msg" id="gameMsg">Pop balloons 🎈 or catch cake 🍰 — each has a unique message!</div>
+    </div>
+  </div>
+
+  <!-- Party Controls -->
+  <div class="theme-selector" id="themeSelector">
+    <div class="theme-option active" data-theme="rainbow" style="background: linear-gradient(45deg, #ff5f6d, #ffc371, #7f7fd5);"></div>
+    <div class="theme-option" data-theme="purple" style="background: linear-gradient(45deg, #9370db, #ba55d3);"></div>
+    <div class="theme-option" data-theme="neon" style="background: linear-gradient(45deg, #00ff7f, #ff1493, #00bfff);"></div>
+  </div>
+
+  <div class="party-controls">
+    <button class="party-control-btn" id="moreConfettiBtn" title="More Confetti">🎊</button>
+    <button class="party-control-btn" id="danceBtn" title="Dance Mode">💃</button>
+    <button class="party-control-btn" id="lightsBtn" title="Toggle Lights">💡</button>
+  </div>
+
+  <div class="secret" id="secret">✨</div>
+  <footer></footer>
+
+  <audio id="music" loop preload="auto">
+    <source src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_5c8a6c1a63.mp3?filename=party-112995.mp3" type="audio/mpeg" />
+  </audio>
+
+  <script>
+    // Mobile detection and optimization
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    
+    // Initialize with mobile-friendly settings
+    if (isMobile) {
+      document.body.style.cursor = 'default';
+    }
+
+    // Card flip with touch support
+    const card = document.getElementById('card');
+    const handleCardClick = () => {
+      card.classList.toggle('flip');
+      burstConfetti(80);
+    };
+    
+    card.addEventListener('click', handleCardClick);
+    card.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      handleCardClick();
+    }, { passive: false });
+
+    // Inline message display function
+    function showMessage(text) {
+      const existing = document.querySelector('.inline-message');
+      if (existing) existing.remove();
+      
+      const message = document.createElement('div');
+      message.className = 'inline-message';
+      message.textContent = text;
+      document.body.appendChild(message);
+      
+      setTimeout(() => {
+        if (message.parentNode) message.remove();
+      }, 3000);
+    }
+
+    // UNIQUE MESSAGES FOR BALLOONS AND CAKES
+    const balloonMessages = [
+      "You're one of a kind ✨", "Your smile lights up the room 🌟", "Today is all about YOU! 🥳",
+      "Make a wish! It's coming true 💫", "You deserve all the happiness 🎈", "Keep soaring high! 🚀",
+      "Your energy is amazing ⚡", "World needs more people like you 🌍", "Stay as awesome as you are 😎",
+      "You're a balloon of joy! 🎈", "Pop! That's the sound of awesome 🎉", "Float through today with joy 🎈",
+      "You're lighter than air with joy! ☁️", "Colorful like a rainbow balloon 🌈", "Up, up, and away to fun! 🚀",
+      "Rising to new heights! 🪂", "Bursting with positivity! 💥", "Filled with good vibes! 🌟",
+      "The sky's the limit! 🌌", "Bouncing with happiness! 🏀", "Lift others with your spirit! 🎈",
+      "Shine bright like a balloon! ✨", "Full of surprises! 🎁", "Always uplifting! ⬆️",
+      "Joyful and carefree! 😊", "Brightening every day! ☀️", "Reaching for the stars! 🌠",
+      "A bundle of happiness! 🎀", "Making memories float! 📸", "Simply spectacular! 🎆"
+    ];
+
+    const cakeMessages = [
+      "You're the cherry on top! 🍒", "Sweet as cake 🍰", "Life is sweet with you in it 🍭",
+      "You're the icing on the cake! 🎂", "Cake approved! 🍰✅", "Make today delicious! 🍪",
+      "You're a whole mood! 🍩", "Sugar, spice, and everything nice 🧁", "Treat yourself today! 🍫",
+      "You're a masterpiece 🎨", "Sweetest person around! 🍯", "Layer of awesome! 🍰",
+      "Sprinkles of joy! 🎊", "Frosting level: Expert 🧁", "Baked with love! ❤️",
+      "Too sweet to handle! 🍬", "Perfectly delightful! 🎯", "A delicious human! 🧑‍🍳",
+      "Cherish every bite! 🍎", "Sweetest surprise! 🎁", "Better than dessert! 🍨",
+      "Absolutely scrumptious! 😋", "Sweet tooth approved! 🦷", "The sweet spot! 🎯",
+      "Too good to share! 🤫", "Frosted with kindness! 🧁", "A delight to know! 🤗",
+      "Sweet as honey! 🐝", "Pure indulgence! 🍫", "The perfect recipe! 📝"
+    ];
+
+    // Track messages with shuffling
+    let availableBalloonIndices = [...Array(balloonMessages.length).keys()];
+    let availableCakeIndices = [...Array(cakeMessages.length).keys()];
+    let balloonIndex = 0, cakeIndex = 0;
+
+    function shuffleArray(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+      return array;
+    }
+
+    availableBalloonIndices = shuffleArray(availableBalloonIndices);
+    availableCakeIndices = shuffleArray(availableCakeIndices);
+
+    function getNextBalloonMessage() {
+      if (balloonIndex >= availableBalloonIndices.length) {
+        availableBalloonIndices = shuffleArray([...Array(balloonMessages.length).keys()]);
+        balloonIndex = 0;
+      }
+      return balloonMessages[availableBalloonIndices[balloonIndex++]];
+    }
+
+    function getNextCakeMessage() {
+      if (cakeIndex >= availableCakeIndices.length) {
+        availableCakeIndices = shuffleArray([...Array(cakeMessages.length).keys()]);
+        cakeIndex = 0;
+      }
+      return cakeMessages[availableCakeIndices[cakeIndex++]];
+    }
+
+    // AMAZING MESSAGES - NON-REPEATING
+    const amazingMessages = [
+      'You hype people up without trying.',
+      'You laugh with your whole face.',
+      'You deserve good things.',
+      'You make hard days easier.',
+      'Your energy is contagious.',
+      'You bring joy wherever you go.',
+      'Your kindness is inspiring.',
+      'You have a beautiful soul.',
+      'You make the world better.',
+      'You are wonderfully unique.',
+      'Your presence is a gift.',
+      'You radiate positive energy.',
+      'You are incredibly strong.',
+      'Your spirit is unbreakable.',
+      'You light up every room.'
+    ];
+
+    let usedAmazingIndices = new Set();
+    let availableAmazingIndices = [...Array(amazingMessages.length).keys()];
+    
+    function getNextAmazingMessage() {
+      if (availableAmazingIndices.length === 0) {
+        availableAmazingIndices = [...Array(amazingMessages.length).keys()];
+        usedAmazingIndices.clear();
+      }
+      
+      // Get random index from available
+      const randomIndex = Math.floor(Math.random() * availableAmazingIndices.length);
+      const messageIndex = availableAmazingIndices.splice(randomIndex, 1)[0];
+      usedAmazingIndices.add(messageIndex);
+      
+      return amazingMessages[messageIndex];
+    }
+
+    // PARTY MODE SYSTEM
+    const partyBtn = document.getElementById('partyBtn');
+    const music = document.getElementById('music');
+    const themeSelector = document.getElementById('themeSelector');
+    const partyLights = document.getElementById('partyLights');
+    const partyConfettiContainer = document.getElementById('partyConfettiContainer');
+    let isPartyMode = false;
+    let currentTheme = 'rainbow';
+    let confettiInterval = null;
+    let lightsInterval = null;
+    let activeConfettiCount = 0;
+    const MAX_CONFETTI = isMobile ? 100 : 200;
+
+    // Create disco lights - FIXED THEME COLORS
+    function createDiscoLights() {
+      partyLights.innerHTML = '';
+      let colors;
+      switch(currentTheme) {
+        case 'rainbow':
+          colors = ['#ff5f6d', '#ffc371', '#7f7fd5', '#42e695', '#fddb92'];
+          break;
+        case 'purple':
+          colors = ['#9370db', '#ba55d3', '#8a2be2', '#9932cc', '#9400d3'];
+          break;
+        case 'neon':
+          colors = ['#00ff7f', '#ff1493', '#00bfff', '#ff00ff', '#ffff00'];
+          break;
+        default:
+          colors = ['#ff5f6d', '#ffc371', '#7f7fd5', '#42e695', '#fddb92'];
+      }
+      
+      for (let i = 0; i < 12; i++) {
+        const beam = document.createElement('div');
+        beam.className = 'light-beam';
+        beam.style.left = `${Math.random() * 100}%`;
+        beam.style.transform = `rotate(${i * 30}deg) translateY(-50%)`;
+        beam.style.animationDelay = `${Math.random() * 4}s`;
+        beam.style.background = `linear-gradient(to bottom, transparent, ${colors[i % colors.length]}33, transparent)`;
+        partyLights.appendChild(beam);
+      }
+    }
+
+    // Start continuous confetti
+    function startContinuousConfetti() {
+      if (confettiInterval) clearInterval(confettiInterval);
+      
+      function spawnConfettiBatch() {
+        if (activeConfettiCount < MAX_CONFETTI) {
+          const batchSize = isMobile ? 3 : 5;
+          for (let i = 0; i < batchSize; i++) {
+            if (activeConfettiCount < MAX_CONFETTI) {
+              createPartyConfetti();
+              activeConfettiCount++;
+            }
+          }
+        }
+      }
+      
+      // Initial batch
+      for (let i = 0; i < 30; i++) {
+        createPartyConfetti();
+        activeConfettiCount++;
+      }
+      
+      // Continuous spawning
+      confettiInterval = setInterval(spawnConfettiBatch, 200);
+    }
+
+    function createPartyConfetti() {
+      const confetti = document.createElement('div');
+      confetti.className = 'party-confetti';
+      
+      // Random position
+      confetti.style.left = `${Math.random() * 100}vw`;
+      confetti.style.setProperty('--drift', (Math.random() - 0.5) * 2);
+      
+      // Random color based on theme
+      let colors;
+      switch(currentTheme) {
+        case 'rainbow':
+          colors = ['#ff5f6d', '#ffc371', '#7f7fd5', '#42e695', '#fddb92', '#ff9966'];
+          break;
+        case 'purple':
+          colors = ['#9370db', '#ba55d3', '#8a2be2', '#9932cc', '#9400d3', '#4b0082'];
+          break;
+        case 'neon':
+          colors = ['#00ff7f', '#ff1493', '#00bfff', '#ff00ff', '#00ffff', '#ffff00'];
+          break;
+        default:
+          colors = ['#ff5f6d', '#ffc371', '#7f7fd5', '#42e695', '#fddb92'];
+      }
+      confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+      
+      // Random shape
+      const shapes = ['circle', 'rect', 'triangle'];
+      const shape = shapes[Math.floor(Math.random() * shapes.length)];
+      if (shape === 'circle') {
+        confetti.style.borderRadius = '50%';
+      } else if (shape === 'triangle') {
+        confetti.style.clipPath = 'polygon(50% 0%, 0% 100%, 100% 100%)';
+      }
+      
+      // Random size
+      const size = isMobile ? 6 + Math.random() * 8 : 8 + Math.random() * 12;
+      confetti.style.width = `${size}px`;
+      confetti.style.height = `${size}px`;
+      
+      // Random animation
+      const duration = 4 + Math.random() * 8;
+      const delay = Math.random() * 2;
+      confetti.style.animationDuration = `${duration}s`;
+      confetti.style.animationDelay = `${delay}s`;
+      
+      partyConfettiContainer.appendChild(confetti);
+      
+      // Auto-remove and decrement counter
+      setTimeout(() => {
+        if (confetti.parentNode === partyConfettiContainer) {
+          confetti.remove();
+          activeConfettiCount = Math.max(0, activeConfettiCount - 1);
+        }
+      }, (duration + delay) * 1000);
+    }
+
+    function stopContinuousConfetti() {
+      if (confettiInterval) {
+        clearInterval(confettiInterval);
+        confettiInterval = null;
+      }
+      partyConfettiContainer.innerHTML = '';
+      activeConfettiCount = 0;
+    }
+
+    // Party mode toggle
+    partyBtn.addEventListener('click', () => {
+      isPartyMode = !isPartyMode;
+      document.body.classList.toggle('party');
+      
+      if (isPartyMode) {
+        // Start party mode
+        createDiscoLights();
+        music.volume = 0.7;
+        music.play().catch(e => {
+          console.log("Audio play failed, requiring user interaction");
+          showMessage("Tap anywhere to enable sound! 🎵");
+          document.body.addEventListener('click', enableAudioOnce, { once: true });
+        });
+        burstConfetti(150);
+        startContinuousConfetti();
+        showMessage('Party Mode Activated! 🎉');
+        
+        // Start lights animation
+        lightsInterval = setInterval(() => {
+          const beams = document.querySelectorAll('.light-beam');
+          beams.forEach(beam => {
+            let colors;
+            switch(currentTheme) {
+              case 'rainbow':
+                colors = ['#ff5f6d', '#ffc371', '#7f7fd5', '#42e695', '#fddb92'];
+                break;
+              case 'purple':
+                colors = ['#9370db', '#ba55d3', '#8a2be2', '#9932cc'];
+                break;
+              case 'neon':
+                colors = ['#00ff7f', '#ff1493', '#00bfff', '#ff00ff'];
+                break;
+            }
+            beam.style.background = `linear-gradient(to bottom, transparent, ${colors[Math.floor(Math.random() * colors.length)]}44, transparent)`;
+          });
+        }, 2000);
+      } else {
+        // Stop party mode
+        music.pause();
+        stopContinuousConfetti();
+        if (lightsInterval) {
+          clearInterval(lightsInterval);
+          lightsInterval = null;
+        }
+        showMessage('Party Mode Off');
+      }
+    });
+
+    function enableAudioOnce() {
+      music.play().then(() => {
+        showMessage("Music enabled! 🎶");
+      }).catch(e => {
+        showMessage("Could not enable audio 😢");
+      });
+    }
+
+    // Theme switching - FIXED WITH PROPER COLOR UPDATES
+    function setTheme(theme) {
+      currentTheme = theme;
+      
+      // Update active theme button
+      document.querySelectorAll('.theme-option').forEach(opt => {
+        opt.classList.remove('active');
+        if (opt.dataset.theme === theme) {
+          opt.classList.add('active');
+        }
+      });
+      
+      // Update disco lights if party mode is on
+      if (isPartyMode) {
+        createDiscoLights(); // Recreate lights with new colors
+      }
+      
+      showMessage(`Theme: ${theme}`);
+    }
+
+    // Add event listeners to theme options - FIXED
+    document.querySelectorAll('.theme-option').forEach(option => {
+      option.addEventListener('click', function(e) {
+        e.stopPropagation();
+        setTheme(this.dataset.theme);
+      });
+    });
+
+    // Party controls
+    document.getElementById('moreConfettiBtn').addEventListener('click', () => {
+      burstConfetti(100);
+      showMessage("More confetti! 🎊");
+    });
+
+    // Dance animation function
+    function createDanceAnimation() {
+      const dancer = document.createElement('div');
+      dancer.className = 'dancer';
+      dancer.textContent = '💃';
+      dancer.style.left = '50%';
+      dancer.style.top = '50%';
+      document.body.appendChild(dancer);
+      
+      // Remove after animation
+      setTimeout(() => {
+        if (dancer.parentNode) dancer.remove();
+      }, 2000);
+      
+      // Also create a second dancer for fun
+      setTimeout(() => {
+        const dancer2 = document.createElement('div');
+        dancer2.className = 'dancer';
+        dancer2.textContent = '🕺';
+        dancer2.style.left = '40%';
+        dancer2.style.top = '40%';
+        dancer2.style.animationDelay = '0.3s';
+        document.body.appendChild(dancer2);
+        
+        setTimeout(() => {
+          if (dancer2.parentNode) dancer2.remove();
+        }, 2000);
+      }, 300);
+    }
+
+    document.getElementById('danceBtn').addEventListener('click', () => {
+      createDanceAnimation();
+      burstConfetti(200);
+      showMessage("Dance party! 💃🕺");
+    });
+
+    document.getElementById('lightsBtn').addEventListener('click', () => {
+      partyLights.style.opacity = partyLights.style.opacity === '0' ? '1' : '0';
+      showMessage(partyLights.style.opacity === '0' ? "Lights off 🌙" : "Lights on! 💡");
+    });
+
+    // Amazing generator - FIXED TO SHOW NON-REPEATING MESSAGES
+    document.getElementById('amazingBtn').addEventListener('click', () => {
+      const msg = getNextAmazingMessage();
+      showMessage(msg);
+    });
+
+    // Confetti helper
+    const colors = ['#ff5f6d','#ffc371','#7f7fd5','#42e695','#fddb92'];
+    function burstConfetti(n){
+      const count = isMobile ? Math.min(n, 50) : n;
+      for(let i=0;i<count;i++){
+        const c=document.createElement('div'); 
+        c.className='confetti';
+        c.style.left=Math.random()*100+'vw'; 
+        c.style.background=colors[Math.floor(Math.random()*colors.length)];
+        c.style.animationDuration=2+Math.random()*3+'s'; 
+        document.body.appendChild(c);
+        setTimeout(()=>c.remove(),5000);
+      }
+    }
+
+    // Mouse/touch trails
+    function createTrail(x, y) {
+      const t = document.createElement('div'); 
+      t.className='trail';
+      t.style.left=x+'px'; 
+      t.style.top=y+'px';
+      t.style.background=colors[Math.floor(Math.random()*colors.length)];
+      document.body.appendChild(t); 
+      setTimeout(()=>t.remove(),800);
+    }
+
+    // Mouse trails for desktop
+    if (!isMobile) {
+      window.addEventListener('mousemove', e => createTrail(e.clientX, e.clientY));
+    }
+
+    // Touch trails for mobile
+    window.addEventListener('touchmove', e => {
+      const touch = e.touches[0];
+      createTrail(touch.clientX, touch.clientY);
+    });
+
+    // MINI-GAME - FIXED CLICKABLE BALLOONS/CAKES
+    const game = document.getElementById('game');
+    let activeElements = 0;
+    const MAX_ELEMENTS = isMobile ? 6 : 10;
+    
+    function spawn(type){
+      if (activeElements >= MAX_ELEMENTS) return;
+      
+      const message = type === 'balloon' ? getNextBalloonMessage() : getNextCakeMessage();
+      const el = document.createElement('div'); 
+      el.className = type;
+      el.textContent = type === 'balloon' ? '🎈' : '🍰';
+      el.dataset.message = message;
+      
+      // Get game dimensions
+      const gameHeight = game.offsetHeight;
+      
+      // Position at bottom, just outside the game box
+      const startLeft = 10 + Math.random() * 80; // 10% to 90% of width
+      const startBottom = -30; // Start 30px below the game box
+      
+      el.style.left = startLeft + '%';
+      el.style.bottom = startBottom + 'px';
+      el.style.opacity = '0';
+      el.style.zIndex = '10'; // Ensure clickable
+      el.style.pointerEvents = 'auto'; // Ensure clickable
+      
+      // Random size
+      const size = 1.5 + Math.random() * 0.5;
+      el.style.fontSize = size + 'em';
+      
+      game.appendChild(el);
+      activeElements++;
+      
+      // Animation variables
+      let animationId = null;
+      let startTime = null;
+      const duration = 15000 + Math.random() * 5000; // 15-20 seconds
+      const startY = startBottom;
+      const endY = gameHeight + 50; // Float up past the top
+      
+      // Click/touch handler
+      const handleClick = (e) => {
+        e.stopPropagation();
+        showMessage(el.dataset.message);
+        if (animationId) cancelAnimationFrame(animationId);
+        el.remove();
+        activeElements--;
+        burstConfetti(20);
+        return false;
+      };
+      
+      // Add event listeners BEFORE animation starts
+      el.addEventListener('click', handleClick);
+      el.addEventListener('touchstart', handleClick, { passive: false });
+      
+      // Animate upward
+      function animate(currentTime) {
+        if (!startTime) startTime = currentTime;
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        
+        // Ease-out for smooth deceleration
+        const easeProgress = 1 - Math.pow(1 - progress, 2);
+        
+        // Current position
+        const currentY = startY + (endY - startY) * easeProgress;
+        el.style.bottom = currentY + 'px';
+        el.style.opacity = Math.min(progress * 3, 1); // Fade in quickly
+        
+        // Slight horizontal drift
+        const drift = Math.sin(progress * Math.PI * 2) * 5;
+        el.style.left = (startLeft + drift) + '%';
+        
+        if (progress < 1) {
+          animationId = requestAnimationFrame(animate);
+        } else {
+          // Remove when animation completes
+          if (el.parentNode === game) {
+            el.remove();
+            activeElements--;
+          }
+        }
+      }
+      
+      animationId = requestAnimationFrame(animate);
+      
+      // Auto-remove after duration (safety)
+      setTimeout(() => {
+        if (el.parentNode === game) {
+          if (animationId) cancelAnimationFrame(animationId);
+          el.remove();
+          activeElements--;
+        }
+      }, duration + 1000);
+    }
+    
+    // Spawn elements
+    setInterval(() => spawn('balloon'), 2000);
+    setInterval(() => spawn('cake'), 2500);
+
+    // Secret
+    document.getElementById('secret').addEventListener('click', () => {
+      showMessage('You found the secret! Voucher: One free hug 🤗');
+    });
+
+    // Evolving background on scroll
+    const morning = document.querySelector('.morning');
+    const evening = document.querySelector('.evening');
+    const night = document.querySelector('.night');
+    
+    window.addEventListener('scroll', () => {
+      const y = window.scrollY / (document.body.scrollHeight - innerHeight);
+      morning.style.opacity = y < 0.33 ? 1 : 0;
+      evening.style.opacity = y >= 0.33 && y < 0.66 ? 1 : 0;
+      night.style.opacity = y >= 0.66 ? 1 : 0;
+    });
+
+    // Mobile optimizations
+    if (isMobile) {
+      // Prevent zoom on double-tap
+      let lastTouchEnd = 0;
+      document.addEventListener('touchend', (e) => {
+        const now = Date.now();
+        if (now - lastTouchEnd <= 300) {
+          e.preventDefault();
+        }
+        lastTouchEnd = now;
+      }, false);
+    }
+
+    // Initialize
+    window.addEventListener('load', () => {
+      // Preload audio
+      music.load();
+      
+      // Show welcome message
+      setTimeout(() => {
+        showMessage('Welcome to the Birthday Party! 🎂');
+      }, 1000);
+    });
+  </script>
+</body>
+</html>
